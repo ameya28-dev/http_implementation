@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../model/common/error.dart';
+import '../model/get/response.dart';
 import '../utils/headers.dart';
 import '../model/common/model.dart';
 
@@ -17,8 +18,16 @@ abstract interface class IHttpMethod {
   Future<Response> httpGet<Response extends Model>({
     required String authority,
     required String path,
-    required Map<String, String> queryParameters,
+    required Map<String, dynamic> queryParameters,
     required Response Function(Map<String, dynamic>) responseBuilder,
+    Headers? header,
+  });
+
+  Future<List<Response>> httpGetList<Response extends Model>({
+    required String authority,
+    required String path,
+    required Map<String, dynamic> queryParameters,
+    required List<Response> Function(List<Map<String, dynamic>>) responseBuilder,
     Headers? header,
   });
 }
@@ -37,11 +46,7 @@ class HttpMethod implements IHttpMethod {
     required Response Function(Map<String, dynamic> p1) responseBuilder,
     Headers? header,
   }) async {
-    http.Response response = await http.post(
-      Uri.parse(url),
-      headers: (header ?? Headers()).toJson(),
-      body: jsonEncode(request),
-    );
+    http.Response response = await http.post(Uri.parse(url), headers: (header ?? Headers()).toJson(), body: jsonEncode(request));
 
     try {
       if ([200, 417, 424].contains(response.statusCode)) {
@@ -60,14 +65,11 @@ class HttpMethod implements IHttpMethod {
   Future<Response> httpGet<Response extends Model>({
     required String authority,
     required String path,
-    required Map<String, String> queryParameters,
+    required Map<String, dynamic> queryParameters,
     required Response Function(Map<String, dynamic> p1) responseBuilder,
     Headers? header,
   }) async {
-    http.Response response = await http.get(
-      Uri.https(authority, path, queryParameters),
-      headers: (header ?? Headers()).toJson(),
-    );
+    http.Response response = await http.get(Uri.https(authority, path, queryParameters), headers: (header ?? Headers()).toJson());
 
     try {
       if ([200, 417, 424].contains(response.statusCode)) {
@@ -79,22 +81,29 @@ class HttpMethod implements IHttpMethod {
       return responseBuilder(Errors(message: ex.toString()).toJson());
     }
   }
-}
 
-// Future<http.Response> refreshTokenAndRetry({required String url, required Map<String, String> headers, required String body}) async {
-//     RefreshTokenResponse? refreshTokenResponse = await GenerateTokenRepo().refreshToken(
-//       RefreshTokenRequest(
-//         requestedBy: SharedPref.getUserId(),
-//         refreshToken: Headers.refreshToken,
-//       ),
-//     );
-//     if (refreshTokenResponse?.errors == null) {
-//       Headers.authorization = "Bearer ${refreshTokenResponse?.result?.accessToken.toString()}";
-//       Headers.refreshToken = (refreshTokenResponse?.result?.refreshToken ?? '').toString();
-//       return await http.post(Uri.parse(url), headers: headers, body: body);
-//     } else {
-//       sessionController.expireSession();
-//       http.Response res = http.Response(jsonEncode(refreshTokenResponse?.errors), int.parse(refreshTokenResponse?.errors?.firstOrNull?.code ?? '0'));
-//       return Future(() => res);
-//     }
-//   }
+  @override
+  Future<List<Response>> httpGetList<Response extends Model>({
+    required String authority,
+    required String path,
+    required Map<String, dynamic> queryParameters,
+    required List<Response> Function(List<Map<String, dynamic>> json) responseBuilder,
+    Headers? header,
+  }) async {
+    http.Response response = await http.get(Uri.https(authority, path, queryParameters), headers: (header ?? Headers()).toJson());
+
+    try {
+      if ([200, 417, 424].contains(response.statusCode)) {
+        return responseBuilder(jsonDecode(response.body).cast<Map<String, dynamic>>());
+      } else {
+        return responseBuilder([
+          GetResponse(errors: [Errors(message: 'api failed')]).toJson()
+        ]);
+      }
+    } on Exception catch (ex) {
+      return responseBuilder([
+        GetResponse(errors: [Errors(message: ex.toString())]).toJson()
+      ]);
+    }
+  }
+}
