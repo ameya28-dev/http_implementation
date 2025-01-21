@@ -1,0 +1,7 @@
+name: http_implementation
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  http: ^1.2.1
