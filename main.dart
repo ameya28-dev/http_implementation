@@ -1,23 +1,27 @@
 import 'dart:convert';
 import 'api/api.dart';
+import 'logging/logging_utils.dart';
 import 'model/post/request.dart' as req;
 import 'model/get/response.dart';
 import 'model/post/response.dart';
 import 'utils/urls.dart';
 
 Future<void> main() async {
+  LoggingUtils.initialize();
+
   List<GetResponse> res = await HttpMethod.instance.httpGetList(
     authority: BaseUrl.restful,
-    path: '/${Endpoints.objects}',
+    path: '/${Endpoints.objects}blmkdslvms ',
     queryParameters: {
       'id': ['3', '5', '4']
     },
     responseBuilder: (json) => json.map((v) => GetResponse()..fromJson(v)).toList(),
   );
-  print(jsonEncode(res));
+
+  LoggingUtils.info(jsonEncode(res));
 
   PostResponse response = await HttpMethod.instance.httpPost(
-    url: 'https://${BaseUrl.restful}/${Endpoints.objects}gvhjmbk',
+    url: 'https://${BaseUrl.restful}/${Endpoints.objects}',
     request: req.PostRequest(
       name: 'Apple MacBook Pro 16',
       data: req.Data(
@@ -30,5 +34,5 @@ Future<void> main() async {
     responseBuilder: (json) => PostResponse()..fromJson(json),
   );
 
-  print(jsonEncode(response));
+  LoggingUtils.info(jsonEncode(response));
 }
